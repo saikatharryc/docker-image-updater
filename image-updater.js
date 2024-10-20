@@ -147,6 +147,7 @@ const checkIfImageNeedsUpdate = async (containerName) => {
         const containerImageName = containerData.Config.Image;
 
         console.log(`Container ${containerName} is using image: ${containerImageId} (${containerImageName})`);
+        await getRemoteImageId(containerImageName);
 
         let localImage;
         try {
@@ -157,20 +158,10 @@ const checkIfImageNeedsUpdate = async (containerName) => {
         }
 
         const localImageId = localImage ? localImage.Id : null;
-        const remoteImageId = await getRemoteImageId(containerImageName);
-
 
         if (localImageId && containerImageId !== localImageId) {
-            console.log(`Drift detected: Container image ID (${containerImageId}) differs from local image ID (${localImageId}).`);
+            console.log(`Drift detected: Container image ID (${containerImageId}) differs from image ID (${localImageId}).`);
             // Image needs to be updated, use the local image
-            return true;
-        } else if (containerImageId && remoteImageId && containerImageId !== remoteImageId) {
-            console.log(`Image update detected from remote repository: container image ID (${containerImageId}), remote image ID (${remoteImageId})`);
-            await pullImage(containerImageName).catch(err => {
-                console.error(`Error pulling image ${containerImageName}:`, err);
-                throw err;
-            });
-            // Image needs to be updated from the remote
             return true;
         } else {
             console.log(`No update required for container: ${containerName}`);
@@ -221,40 +212,7 @@ const getRemoteImageId = async (imageName) => {
             }
 
             function onProgress(event) {
-                console.log('Checking remote image ID...');
-            }
-        });
-    });
-}
-
-
-/**
- * Pulls an image from the registry and returns a promise that resolves when the image pull is complete.
- *
- * This function takes an image name, pulls the image from the registry, and returns a promise that resolves when the pull is complete.
- * If any error occurs during the pull, it rejects the promise with the error.
- *
- * @param {string} imageName - The name of the image to pull.
- * @returns {Promise} - A promise that resolves when the image pull is complete.
- */
-const pullImage = async (imageName) => {
-    return new Promise((resolve, reject) => {
-        docker.pull(imageName, { 'authconfig': process.env.DOCKER_AUTH || {} }, (err, stream) => {
-            if (err) {
-                return reject(err);
-            }
-
-            docker.modem.followProgress(stream, onFinished, onProgress);
-
-            function onFinished(err) {
-                if (err) {
-                    return reject(err);
-                }
-                resolve();
-            }
-
-            function onProgress(event) {
-                console.log(`Pulling image: ${imageName}`);
+                console.log('Syncing remote image ...');
             }
         });
     });
