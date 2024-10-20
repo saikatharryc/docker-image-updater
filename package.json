@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dockernode": "^0.1.0",
+    "node-cron": "^3.0.3"
+  }
+}
