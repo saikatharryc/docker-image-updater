@@ -5,7 +5,7 @@
 
 const cron = require('node-cron');
 const Docker = require('dockerode');
-const docker = new Docker({ socketPath: '/Users/saikat/.colima/default/docker.sock' });
+const docker = new Docker({ socketPath: process.env.DOCKER_HOST || '/Users/saikat/.colima/default/docker.sock' });
 
 
 
@@ -264,4 +264,4 @@ const pullImage = async (imageName) => {
     });
 }
 
-cron.schedule('* * * * *', checkForUpdates);
+cron.schedule(process.env.CRON || '* * * * *', checkForUpdates);
