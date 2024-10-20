@@ -5,7 +5,7 @@
 
 const cron = require('node-cron');
 const Docker = require('dockerode');
-const docker = new Docker({ socketPath: process.env.DOCKER_HOST || '/Users/saikat/.colima/default/docker.sock' });
+const docker = new Docker({ socketPath: process.env.DOCKER_HOST });
 
 
 
@@ -88,6 +88,7 @@ const updateImage = async (containerInfo, targetContainerName) => {
         console.log(`Removing old container: ${oldContainerName}`);
 
         await containerManagement(oldContainerName, 'remove');
+        console.log("[Action Completed for container]:", targetContainerName);
 
     } catch (createErr) {
         console.error(`Error creating or starting new container: ${createErr}`);
@@ -156,19 +157,14 @@ const checkIfImageNeedsUpdate = async (containerName) => {
         }
 
         const localImageId = localImage ? localImage.Id : null;
+        const remoteImageId = await getRemoteImageId(containerImageName);
+
 
         if (localImageId && containerImageId !== localImageId) {
             console.log(`Drift detected: Container image ID (${containerImageId}) differs from local image ID (${localImageId}).`);
             // Image needs to be updated, use the local image
             return true;
-        } else if (localImageId) {
-            console.log(`No drift: Container image matches the local image (${localImageId}). No update needed.`);
-            return false;
-        }
-
-        // Step 4: If no local image or drift, check the remote repository
-        const remoteImageId = await getRemoteImageId(containerImageName);
-        if (containerImageId && remoteImageId && containerImageId !== remoteImageId) {
+        } else if (containerImageId && remoteImageId && containerImageId !== remoteImageId) {
             console.log(`Image update detected from remote repository: container image ID (${containerImageId}), remote image ID (${remoteImageId})`);
             await pullImage(containerImageName).catch(err => {
                 console.error(`Error pulling image ${containerImageName}:`, err);
@@ -200,7 +196,7 @@ const checkIfImageNeedsUpdate = async (containerName) => {
  */
 const getRemoteImageId = async (imageName) => {
     return new Promise((resolve, reject) => {
-        docker.pull(imageName, { 'X-Registry-Auth': '' }, (err, stream) => {
+        docker.pull(imageName, { 'authconfig': process.env.DOCKER_AUTH || {} }, (err, stream) => {
             if (err) {
                 // Handle 401 (authentication required) and 404 (image not found) errors gracefully
                 if (err.statusCode === 401) {
@@ -243,7 +239,7 @@ const getRemoteImageId = async (imageName) => {
  */
 const pullImage = async (imageName) => {
     return new Promise((resolve, reject) => {
-        docker.pull(imageName, (err, stream) => {
+        docker.pull(imageName, { 'authconfig': process.env.DOCKER_AUTH || {} }, (err, stream) => {
             if (err) {
                 return reject(err);
             }

@@ -1,6 +1,8 @@
 # Docker Auto Update
 
-This project includes a script to automatically update Docker images specifically for the latest tags when you always want to auto update.
+This project includes a script to automatically update Docker images specifically for the `latest` or same tags which might have updated layers when you always want to auto update.
+
+This further can be adjusted to work on a format where it finds the latest tag and update in the env when available, thats for another time.
 
 ## Usage
 
