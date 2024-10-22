@@ -5,7 +5,8 @@
 
 const cron = require('node-cron');
 const Docker = require('dockerode');
-const docker = new Docker({ socketPath: process.env.DOCKER_HOST });
+const docker = new Docker();
+
 
 
 
@@ -218,4 +219,12 @@ const getRemoteImageId = async (imageName) => {
     });
 }
 
-cron.schedule(process.env.CRON || '* * * * *', checkForUpdates);
+docker.ping().then((d)=>{
+    console.log('Successfully connected to docker', d);
+    console.log('Starting image updater...');
+    cron.schedule(process.env.CRON || '* * * * *', checkForUpdates);
+}).catch((err)=>{
+    console.log('Error connecting to docker', err);
+    // process.exit(1);
+    cron.schedule(process.env.CRON || '* * * * *', checkForUpdates);
+})
